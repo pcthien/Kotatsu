@@ -39,6 +39,23 @@ android {
 		}
 		resValue 'string', 'tg_backup_bot_token', localProperties.getProperty('tg_backup_bot_token', '')
 	}
+	// Sideload signing: reads keystore coordinates from local.properties (never committed).
+	// Keys: sideload.storeFile, sideload.storePassword, sideload.keyAlias, sideload.keyPassword
+	def sideloadProps = new Properties()
+	def sideloadPropsFile = rootProject.file('local.properties')
+	if (sideloadPropsFile.exists()) {
+		sideloadProps.load(new FileInputStream(sideloadPropsFile))
+	}
+	signingConfigs {
+		sideload {
+			if (sideloadProps.getProperty('sideload.storeFile')) {
+				storeFile file(sideloadProps.getProperty('sideload.storeFile'))
+				storePassword sideloadProps.getProperty('sideload.storePassword')
+				keyAlias sideloadProps.getProperty('sideload.keyAlias')
+				keyPassword sideloadProps.getProperty('sideload.keyPassword')
+			}
+		}
+	}
 	buildTypes {
 		debug {
 			applicationIdSuffix = '.debug'
@@ -51,6 +68,10 @@ android {
 		nightly {
 			initWith release
 			applicationIdSuffix = '.nightly'
+			// Self-updatable sideload channel signed with your own key.
+			if (sideloadProps.getProperty('sideload.storeFile')) {
+				signingConfig signingConfigs.sideload
+			}
 		}
 	}
 	buildFeatures {
@@ -108,9 +129,15 @@ android {
 	applicationVariants.configureEach { variant ->
 		if (variant.name == 'nightly') {
 			variant.outputs.each { output ->
-				def now = LocalDateTime.now()
-				output.versionCodeOverride = now.format("yyMMdd").toInteger()
-				output.versionNameOverride = 'N' + now.format("yyyyMMdd")
+				// Monotonic build stamp = minutes since 2020-01-01 UTC.
+				// Fits in Int, increases every minute, so every build outranks the previous one
+				// and the in-app updater always sees a fresh build as newer.
+				// The release script passes -PbuildStamp so the APK and GitHub release tag match exactly.
+				def stamp = project.hasProperty('buildStamp')
+						? project.buildStamp.toInteger()
+						: (int) ((System.currentTimeMillis() / 1000L - 1577836800L) / 60L)
+				output.versionCodeOverride = stamp
+				output.versionNameOverride = 'N' + stamp
 			}
 		}
 	}

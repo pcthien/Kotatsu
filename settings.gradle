@@ -28,5 +28,16 @@ dependencyResolutionManagement {
 	}
 }
 
+// Local composite build of kotatsu-parsers for source maintenance.
+// Active when ../kotatsu-parsers exists. Set env KOTATSU_JITPACK_PARSERS=1 to force the JitPack dependency instead.
+def localParsers = file('../kotatsu-parsers')
+if (localParsers.exists() && System.getenv('KOTATSU_JITPACK_PARSERS') == null) {
+	includeBuild(localParsers) {
+		dependencySubstitution {
+			substitute(module('com.github.KotatsuApp:kotatsu-parsers')).using(project(':'))
+		}
+	}
+}
+
 include ':app'
 rootProject.name = "Kotatsu"
