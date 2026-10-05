@@ -26,7 +26,7 @@ across devices via my Supabase account.
    1256 sources. A TS rewrite would throw all of this away — don't.
 
 2. **Cloudflare blocks datacenter IPs and non-browser clients.** Sources like
-   `truyenqqko.com` / `foxtruyen2.com` terminate TLS or return empty `200`s to
+   `truyenqqko.com` / `truyenggvn.com` terminate TLS or return empty `200`s to
    cloud IPs and plain HTTP clients. Vercel serverless `fetch()` WILL fail. The
    Android app survives only because it scrapes through a real **WebView**. So the
    scraper service MUST drive a **headless browser (Playwright)** for the
