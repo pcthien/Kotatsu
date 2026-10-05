@@ -1,0 +1,79 @@
+name: Release Nightly
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: 'Release notes / changelog'
+        required: false
+        default: 'Nightly build'
+  push:
+    branches:
+      - devel
+    paths:
+      - 'app/**'
+      - 'gradle/**'
+      - 'settings.gradle'
+      - 'build.gradle'
+      - '.github/workflows/release-nightly.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Kotatsu
+        uses: actions/checkout@v4
+        with:
+          path: Kotatsu
+          fetch-depth: 0
+
+      - name: Checkout kotatsu-parsers
+        uses: actions/checkout@v4
+        with:
+          repository: pcthien/kotatsu-parsers
+          path: kotatsu-parsers
+          ref: master
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set executable permissions
+        run: |
+          chmod +x Kotatsu/gradlew
+          chmod +x kotatsu-parsers/gradlew
+
+      - name: Calculate Monotonic Version
+        run: |
+          STAMP=$(( ( $(date -u +%s) - 1577836800 ) / 60 ))
+          echo "STAMP=${STAMP}" >> $GITHUB_ENV
+          echo "VERSION=N${STAMP}" >> $GITHUB_ENV
+
+      - name: Build Nightly APK
+        working-directory: Kotatsu
+        run: |
+          ./gradlew :app:assembleNightly -PbuildStamp="${STAMP}" --no-daemon
+
+      - name: Prepare APK Asset
+        run: |
+          APK="$(ls -t Kotatsu/app/build/outputs/apk/nightly/*.apk | head -1)"
+          cp "$APK" "Kotatsu-${VERSION}.apk"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: ${{ env.VERSION }}
+          body: ${{ github.event.inputs.release_notes || format('Nightly build {0}', env.VERSION) }}
+          files: Kotatsu-${{ env.VERSION }}.apk
+          draft: false
+          prerelease: false

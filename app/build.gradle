@@ -53,6 +53,11 @@ android {
 				storePassword sideloadProps.getProperty('sideload.storePassword')
 				keyAlias sideloadProps.getProperty('sideload.keyAlias')
 				keyPassword sideloadProps.getProperty('sideload.keyPassword')
+			} else if (rootProject.file('keystore/sideload.jks').exists()) {
+				storeFile rootProject.file('keystore/sideload.jks')
+				storePassword 'kotatsu-sideload'
+				keyAlias 'kotatsu-sideload'
+				keyPassword 'kotatsu-sideload'
 			}
 		}
 	}
@@ -69,7 +74,7 @@ android {
 			initWith release
 			applicationIdSuffix = '.nightly'
 			// Self-updatable sideload channel signed with your own key.
-			if (sideloadProps.getProperty('sideload.storeFile')) {
+			if (sideloadProps.getProperty('sideload.storeFile') || rootProject.file('keystore/sideload.jks').exists()) {
 				signingConfig signingConfigs.sideload
 			}
 		}

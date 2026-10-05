@@ -31,4 +31,5 @@
 
 # signing keystores
 *.jks
+!keystore/sideload.jks
 *.keystore
